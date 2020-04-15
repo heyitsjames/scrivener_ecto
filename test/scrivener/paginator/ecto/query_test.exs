@@ -4,30 +4,38 @@ defmodule Scrivener.Paginator.Ecto.QueryTest do
   alias Scrivener.Ecto.{Comment, KeyValue, Post}
 
   defp create_posts do
-    unpublished_post =
-      %Post{
-        title: "Title unpublished",
-        body: "Body unpublished",
-        published: false
-      }
-      |> Scrivener.Ecto.Repo.insert!()
+    unpublished_post = insert_new_post!("Title unpublished", "Body unpublished", false)
 
-    Enum.map(1..2, fn i ->
-      %Comment{
-        body: "Body #{i}",
-        post_id: unpublished_post.id
-      }
-      |> Scrivener.Ecto.Repo.insert!()
-    end)
+    for i <- 1..2, do: insert_new_comment!("Body #{i}", unpublished_post.id)
 
-    Enum.map(1..6, fn i ->
-      %Post{
-        title: "Title #{i}",
-        body: "Body #{i}",
-        published: true
-      }
-      |> Scrivener.Ecto.Repo.insert!()
-    end)
+    for i <- 1..6, do: insert_new_post!("Title #{i}", "Body #{i}")
+  end
+
+  defp create_multiple_posts_and_comments do
+    for i <- 1..6 do
+      post = insert_new_post!("Title #{i}", "Body #{i}")
+
+      for j <- 1..5 do
+        insert_new_comment!("Body #{i}-#{j}", post.id)
+      end
+    end
+  end
+
+  defp insert_new_comment!(body, post_id) do
+    %Comment{
+      body: body,
+      post_id: post_id
+    }
+    |> Scrivener.Ecto.Repo.insert!()
+  end
+
+  defp insert_new_post!(title, body, published \\ true) do
+    %Post{
+      title: title,
+      body: body,
+      published: published
+    }
+    |> Scrivener.Ecto.Repo.insert!()
   end
 
   defp create_key_values do
@@ -86,28 +94,6 @@ defmodule Scrivener.Paginator.Ecto.QueryTest do
         |> Scrivener.Ecto.Repo.paginate()
 
       assert page.page_size == 5
-      assert page.page_number == 1
-      assert page.total_pages == 2
-    end
-
-    test "it handles offsets" do
-      create_posts()
-
-      page =
-        Post
-        |> Post.unpublished()
-        |> Scrivener.Ecto.Repo.paginate(options: [offset: 1])
-
-      assert page.entries |> length == 0
-      assert page.page_number == 1
-      assert page.total_pages == 1
-
-      page =
-        Post
-        |> Post.published()
-        |> Scrivener.Ecto.Repo.paginate(options: [offset: 2])
-
-      assert page.entries |> length == 4
       assert page.page_number == 1
       assert page.total_pages == 2
     end
@@ -213,6 +199,24 @@ defmodule Scrivener.Paginator.Ecto.QueryTest do
       assert page.page_size == 10
     end
 
+    test "will respect the total_entries configuration" do
+      create_posts()
+
+      config = %Scrivener.Config{
+        module: Scrivener.Ecto.Repo,
+        page_number: 2,
+        page_size: 4,
+        options: [total_entries: 130]
+      }
+
+      page =
+        Post
+        |> Post.published()
+        |> Scrivener.paginate(config)
+
+      assert page.total_entries == 130
+    end
+
     test "will respect total_entries passed to paginate" do
       create_posts()
 
@@ -227,28 +231,20 @@ defmodule Scrivener.Paginator.Ecto.QueryTest do
     test "will use total_pages if page_numer is too large" do
       posts = create_posts()
 
-      page =
-        Post
-        |> Post.published()
-        |> Scrivener.Ecto.Repo.paginate(page: 3)
-
-      assert page.page_number == 2
-      assert page.entries == posts |> Enum.reverse() |> Enum.take(1)
-    end
-
-    test "allows overflow page numbers if option is specified" do
-      create_posts()
+      config = %Scrivener.Config{
+        module: Scrivener.Ecto.Repo,
+        page_number: 2,
+        page_size: length(posts),
+        options: []
+      }
 
       page =
         Post
         |> Post.published()
-        |> Scrivener.Ecto.Repo.paginate(
-          page: 3,
-          options: [allow_overflow_page_number: true]
-        )
+        |> Scrivener.paginate(config)
 
-      assert page.page_number == 3
-      assert page.entries == []
+      assert page.page_number == 1
+      assert page.entries == posts
     end
 
     test "can be used on a table with any primary key" do
@@ -362,45 +358,18 @@ defmodule Scrivener.Paginator.Ecto.QueryTest do
       assert page.total_pages == 2
     end
 
-    test "pagination plays nice with distinct on in the query" do
-      create_posts()
+    test "handles joins with preloads properly" do
+      create_multiple_posts_and_comments()
 
       page =
         Post
-        |> distinct([p], asc: p.title, asc: p.inserted_at)
+        |> Post.published()
+        |> join(:inner, [p], c in assoc(p, :comments))
+        |> preload([p, c], comments: c)
         |> Scrivener.Ecto.Repo.paginate()
 
+      assert page.total_entries == 6
       assert page.page_size == 5
-      assert page.page_number == 1
-      assert page.total_entries == 7
-      assert page.total_pages == 2
-    end
-
-    test "pagination plays nice with absolute distinct in the query" do
-      create_posts()
-
-      page =
-        Post
-        |> distinct(true)
-        |> Scrivener.Ecto.Repo.paginate()
-
-      assert page.page_size == 5
-      assert page.page_number == 1
-      assert page.total_entries == 7
-      assert page.total_pages == 2
-    end
-
-    test "pagination plays nice with a singular distinct in the query" do
-      create_posts()
-
-      page =
-        Post
-        |> distinct(:id)
-        |> Scrivener.Ecto.Repo.paginate()
-
-      assert page.page_size == 5
-      assert page.page_number == 1
-      assert page.total_entries == 7
       assert page.total_pages == 2
     end
   end
