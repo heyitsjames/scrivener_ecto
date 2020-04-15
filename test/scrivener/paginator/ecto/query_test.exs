@@ -1,4 +1,4 @@
-defmodule Scrivener.Paginator.Ecto.QueryTest do
+defmodule Scrivener.Paginater.Ecto.QueryTest do
   use Scrivener.Ecto.TestCase
 
   alias Scrivener.Ecto.{Comment, KeyValue, Post}

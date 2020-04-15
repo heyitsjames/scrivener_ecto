@@ -1,4 +1,4 @@
-defimpl Scrivener.Paginator, for: Ecto.Query do
+defimpl Scrivener.Paginater, for: Ecto.Query do
   import Ecto.Query
 
   alias Scrivener.{Config, Page}
