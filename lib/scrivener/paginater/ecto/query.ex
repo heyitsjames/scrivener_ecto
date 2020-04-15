@@ -22,6 +22,7 @@ defimpl Scrivener.Paginater, for: Ecto.Query do
       |> exclude(:select)
       |> exclude(:preload)
       |> exclude(:group_by)
+      |> exclude(:order_by)
 
     # The group_by is needed to de-duplicate. "distinct" doesnt work
     # because the postgres driver adds the distinct column to the order_by

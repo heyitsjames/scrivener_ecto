@@ -372,5 +372,22 @@ defmodule Scrivener.Paginater.Ecto.QueryTest do
       assert page.page_size == 5
       assert page.total_pages == 2
     end
+
+    test "it handles complex order_by with join preloads" do
+      create_multiple_posts_and_comments()
+
+      page =
+        Post
+        |> Post.published()
+        |> join(:inner, [p], c in assoc(p, :comments))
+        |> preload([p, c], comments: c)
+        |> order_by([p, c], asc: c.body)
+        |> Scrivener.Ecto.Repo.paginate()
+
+
+      assert page.total_entries == 6
+      assert page.page_size == 5
+      assert page.total_pages == 2
+    end
   end
 end
