@@ -45,6 +45,7 @@ defmodule Scrivener.Ecto.Mixfile do
       {:ecto, "~> 3.0"},
       {:ecto_sql, "~> 3.0", only: :test},
       {:dialyxir, "~> 0.5.0", only: :dev},
+      {:mix_test_watch, "~> 0.8", only: [:dev], runtime: false},
       {:earmark, ">= 0.0.0", only: :dev},
       {:ex_doc, "~> 0.20.0", only: :dev},
       {:postgrex, "~> 0.15.0", only: :test}
