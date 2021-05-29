@@ -14,10 +14,10 @@ defimpl Scrivener.Paginater, for: Ecto.Query do
         options: options
       }) do
 
-    group_joins? = Keyword.get(options, :group_joins, false)
-
     total_entries =
-      Keyword.get_lazy(options, :total_entries, fn -> total_entries(query, repo, caller, group_joins?) end)
+      Keyword.get_lazy(options, :total_entries, fn ->
+        total_entries(query, repo, caller, options)
+      end)
 
     total_pages = total_pages(total_entries, page_size)
     allow_overflow_page_number = Keyword.get(options, :allow_overflow_page_number, false)
@@ -38,14 +38,18 @@ defimpl Scrivener.Paginater, for: Ecto.Query do
 
   defp entries(query, repo, page_number, _, page_size, caller, options) do
     offset = Keyword.get_lazy(options, :offset, fn -> page_size * (page_number - 1) end)
+    prefix = options[:prefix]
 
     query
     |> offset(^offset)
     |> limit(^page_size)
-    |> repo.all(caller: caller)
+    |> all(repo, caller, prefix)
   end
 
-  defp total_entries(query, repo, caller, group_joins?) do
+  defp total_entries(query, repo, caller, options) do
+    group_joins? = options[:group_joins]
+    prefix = options[:prefix]
+
     base_query =
       query
       |> exclude(:preload)
@@ -57,18 +61,18 @@ defimpl Scrivener.Paginater, for: Ecto.Query do
           base_query
           |> group_by([x], [x.id])
           |> aggregate()
-          |> repo.one(caller: caller)
+          |> one(repo, caller, prefix)
 
         false ->
           base_query
           |> aggregate()
-          |> repo.one(caller: caller)
+          |> one(repo, caller, prefix)
       end
 
     total_entries || 0
   end
 
-  defp aggregate(%{distinct: %{expr: [_ | _]}} = query) do
+  defp aggregate(%{distinct: %{expr: expr}} = query) when expr == true or is_list(expr) do
     query
     |> exclude(:select)
     |> count()
@@ -108,5 +112,21 @@ defimpl Scrivener.Paginater, for: Ecto.Query do
 
   defp total_pages(total_entries, page_size) do
     (total_entries / page_size) |> Float.ceil() |> round
+  end
+
+  defp all(query, repo, caller, nil) do
+    repo.all(query, caller: caller)
+  end
+
+  defp all(query, repo, caller, prefix) do
+    repo.all(query, caller: caller, prefix: prefix)
+  end
+
+  defp one(query, repo, caller, nil) do
+    repo.one(query, caller: caller)
+  end
+
+  defp one(query, repo, caller, prefix) do
+    repo.one(query, caller: caller, prefix: prefix)
   end
 end

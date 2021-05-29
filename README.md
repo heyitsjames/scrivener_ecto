@@ -1,6 +1,7 @@
 # Scrivener.Ecto
 
-[![Build Status](https://travis-ci.org/drewolson/scrivener_ecto.svg?branch=master)](https://travis-ci.org/drewolson/scrivener_ecto) [![Hex Version](http://img.shields.io/hexpm/v/scrivener_ecto.svg?style=flat)](https://hex.pm/packages/scrivener_ecto) [![Hex docs](http://img.shields.io/badge/hex.pm-docs-green.svg?style=flat)](https://hexdocs.pm/scrivener_ecto)
+[![Build
+Status](https://github.com/drewolson/scrivener_ecto/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/drewolson/scrivener_ecto/actions/workflows/test.yml)
 
 ## Low Maintenance Warning
 
@@ -67,16 +68,14 @@ page =
 
 ## Installation
 
-Add `scrivener_ecto` to your `mix.exs` `applications` and `dependencies`.
+Add `scrivener_ecto` to your `mix.exs` `deps`.
 
 ```elixir
-def application do
-  [applications: [:scrivener_ecto]]
+defp deps do
+  [
+    {:scrivener_ecto, "~> 2.0"}
+  ]
 end
-```
-
-```elixir
-[{:scrivener_ecto, "~> 2.0"}]
 ```
 
 ## Contributing
@@ -87,7 +86,7 @@ First, you'll need to build the test database.
 MIX_ENV=test mix db.reset
 ```
 
-This task assumes you have postgres installed and that your current user can create / drop databases. If you'd prefer to use a different user, you can specify it with the environment variable `SCRIVENER_ECTO_DB_USER`.
+This task assumes you have postgres installed and that the `postgres` user can create / drop databases. If you'd prefer to use a different user, you can specify it with the environment variable `SCRIVENER_ECTO_DB_USER`.
 
 With the database built, you can now run the tests.
 
