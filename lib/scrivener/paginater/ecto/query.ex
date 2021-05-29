@@ -47,7 +47,7 @@ defimpl Scrivener.Paginater, for: Ecto.Query do
   end
 
   defp total_entries(query, repo, caller, options) do
-    group_joins? = options[:group_joins]
+    group_joins? = Keyword.get(options, :group_joins, false)
     prefix = options[:prefix]
 
     base_query =
